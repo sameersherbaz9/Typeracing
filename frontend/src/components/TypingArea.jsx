@@ -8,6 +8,8 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
   const [finished, setFinished] = useState(false);
   const inputRef = useRef(null);
   const intervalRef = useRef(null);
+  const cursorRef = useRef(null);
+  const textBoxRef = useRef(null);
 
   useEffect(() => {
     setTyped('');
@@ -24,10 +26,28 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
     }
   }, [started, disabled]);
 
+  // Auto-scroll the text box to keep the cursor visible
+  useEffect(() => {
+    if (cursorRef.current && textBoxRef.current) {
+      const box = textBoxRef.current;
+      const cursor = cursorRef.current;
+      const boxTop = box.scrollTop;
+      const boxBottom = boxTop + box.clientHeight;
+      const cursorTop = cursor.offsetTop;
+      const cursorBottom = cursorTop + cursor.offsetHeight;
+
+      if (cursorBottom > boxBottom - 8) {
+        box.scrollTop = cursorTop - box.clientHeight / 2;
+      } else if (cursorTop < boxTop + 8) {
+        box.scrollTop = cursorTop - box.clientHeight / 2;
+      }
+    }
+  }, [typed]);
+
   const calculateStats = useCallback((typedText, startT) => {
     if (!startT || typedText.length === 0) return { wpm: 0, accuracy: 100 };
 
-    const elapsed = (Date.now() - startT) / 1000 / 60; // minutes
+    const elapsed = (Date.now() - startT) / 1000 / 60;
     const correctChars = typedText.split('').filter((c, i) => c === text[i]).length;
     const calcWpm = Math.round((typedText.length / 5) / Math.max(elapsed, 0.01));
     const calcAccuracy = Math.round((correctChars / typedText.length) * 100);
@@ -39,11 +59,8 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
     if (disabled || finished || !started) return;
 
     const value = e.target.value;
-
-    // Prevent typing beyond text length
     if (value.length > text.length) return;
 
-    // Start timer on first keystroke
     let currentStart = startTime;
     if (!startTime && value.length > 0) {
       currentStart = Date.now();
@@ -59,7 +76,6 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
     const progress = Math.round((value.length / text.length) * 100);
     onProgress?.({ progress, wpm: newWpm, accuracy: newAcc });
 
-    // Check completion
     if (value.length === text.length) {
       const elapsed = Date.now() - currentStart;
       setFinished(true);
@@ -70,16 +86,23 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
 
   const renderText = () => {
     return text.split('').map((char, i) => {
-      let className = 'typing-char ';
+      const isCurrent = i === typed.length;
+      let colorClass = '';
+
       if (i < typed.length) {
-        className += typed[i] === char ? 'correct' : 'incorrect';
-      } else if (i === typed.length) {
-        className += 'current';
+        colorClass = typed[i] === char ? 'correct' : 'incorrect';
+      } else if (isCurrent) {
+        colorClass = 'current';
       } else {
-        className += 'pending';
+        colorClass = 'pending';
       }
+
       return (
-        <span key={i} className={className}>
+        <span
+          key={i}
+          ref={isCurrent ? cursorRef : null}
+          className={`typing-char ${colorClass}`}
+        >
           {char === ' ' ? '\u00A0' : char}
         </span>
       );
@@ -108,16 +131,37 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
         </div>
       </div>
 
-      {/* Text display */}
+      {/* Text display — fixed height with scroll, proper word wrap */}
       <div
-        className="glass rounded-xl p-6 text-xl font-mono leading-relaxed tracking-wide cursor-text select-none"
-        style={{ lineHeight: '2rem', minHeight: '120px' }}
+        ref={textBoxRef}
+        className="glass rounded-xl p-6 cursor-text select-none overflow-y-auto"
+        style={{
+          height: '140px',
+          overflowX: 'hidden',
+          scrollBehavior: 'smooth',
+        }}
         onClick={() => inputRef.current?.focus()}
       >
-        {text ? renderText() : <span className="text-dark-400">Loading text...</span>}
+        {text ? (
+          <p
+            style={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: '1.15rem',
+              lineHeight: '2rem',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              margin: 0,
+            }}
+          >
+            {renderText()}
+          </p>
+        ) : (
+          <span className="text-dark-400 font-mono">Loading text...</span>
+        )}
       </div>
 
-      {/* Hidden input */}
+      {/* Hidden real input */}
       <input
         ref={inputRef}
         type="text"
@@ -132,10 +176,10 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
         tabIndex={-1}
       />
 
-      {/* Visible input area */}
+      {/* Visible status bar */}
       <div
         className={`glass rounded-xl px-5 py-4 flex items-center gap-3 cursor-text transition-all duration-200 ${
-          !disabled && started ? 'border-brand-500/30 ring-1 ring-brand-500/20' : 'border-transparent'
+          !disabled && started && !finished ? 'border border-brand-500/30 ring-1 ring-brand-500/20' : 'border border-transparent'
         }`}
         onClick={() => inputRef.current?.focus()}
       >
@@ -149,7 +193,10 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
         ) : disabled ? (
           <span className="text-dark-400 font-mono text-sm">Typing disabled</span>
         ) : (
-          <span className="text-dark-400 font-mono text-sm">Click here and start typing...</span>
+          <span className="text-dark-400 font-mono text-sm">
+            Click here and start typing
+            <span className="inline-block w-0.5 h-4 bg-brand-500 ml-1 animate-pulse align-middle" />
+          </span>
         )}
       </div>
     </div>
