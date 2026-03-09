@@ -42,6 +42,7 @@ body {
   position: relative;
   display: inline;
   transition: color 0.05s ease;
+  white-space: pre-wrap;        /* ← THIS LINE WAS ADDED */
 }
 
 .typing-char.correct {
