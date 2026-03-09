@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #ff3d24;
+  --brand-dim: rgba(255, 61, 36, 0.15);
+  --dark-900: #0a0a0f;
+  --dark-800: #111118;
+  --dark-700: #1a1a24;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--dark-900);
+  color: #e8e8f0;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--dark-800); }
+::-webkit-scrollbar-thumb { background: #3d3d52; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--brand); }
+
+/* Selection */
+::selection { background: rgba(255, 61, 36, 0.3); color: #fff; }
+
+/* ── Typing Race Specific ──────────────────── */
+
+.typing-char {
+  position: relative;
+  display: inline;
+  transition: color 0.05s ease;
+}
+
+.typing-char.correct {
+  color: #00ff88;
+}
+
+.typing-char.incorrect {
+  color: #ff4455;
+  background-color: rgba(255, 68, 85, 0.15);
+  border-radius: 2px;
+}
+
+.typing-char.pending {
+  color: #5a5a75;
+}
+
+.typing-char.current {
+  color: #e8e8f0;
+}
+
+.typing-char.current::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--brand);
+  animation: cursorBlink 1s step-end infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Glass Card ─────────────────────────────── */
+.glass {
+  background: rgba(26, 26, 36, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Glow Effects ───────────────────────────── */
+.glow-brand {
+  box-shadow: 0 0 20px rgba(255, 61, 36, 0.3);
+}
+
+.text-glow-brand {
+  text-shadow: 0 0 20px rgba(255, 61, 36, 0.5);
+}
+
+/* ── Progress Bar ───────────────────────────── */
+.progress-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, #ff3d24, #ff6b57);
+  box-shadow: 0 0 8px rgba(255, 61, 36, 0.5);
+}
+
+/* ── Input Focus ────────────────────────────── */
+.race-input {
+  caret-color: var(--brand);
+  outline: none;
+}
+
+.race-input:focus {
+  box-shadow: 0 0 0 2px rgba(255, 61, 36, 0.4);
+}
+
+/* ── Countdown ──────────────────────────────── */
+.countdown-number {
+  animation: countDown 1s ease-in-out forwards;
+}
+
+@keyframes countDown {
+  0% { transform: scale(2.5); opacity: 0; }
+  30% { opacity: 1; }
+  70% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.3); opacity: 0; }
+}
+
+/* ── Noise texture overlay ──────────────────── */
+.noise::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ── Animations ─────────────────────────────── */
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* ── Background grid ────────────────────────── */
+.bg-grid {
+  background-image: 
+    linear-gradient(rgba(255,61,36,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,61,36,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
