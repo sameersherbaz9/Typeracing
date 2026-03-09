@@ -3,6 +3,17 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Determine SSL CA source
+let caCert;
+if (process.env.DB_CA_CONTENT) {
+  // Use the text pasted into Render's dashboard
+  caCert = process.env.DB_CA_CONTENT;
+} else {
+  // Use the local file path
+  const certPath = path.join(__dirname, '..', '..', 'database', 'ca.pem');
+  caCert = fs.readFileSync(certPath);
+}
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -14,13 +25,11 @@ const pool = mysql.createPool({
   queueLimit: 0,
   charset: 'utf8mb4',
   ssl: {
-    // FIXED PATH: '../../' moves up from backend/models to the root directory
-    ca: fs.readFileSync(path.join(__dirname, '../../database/ca.pem')),
+    ca: caCert,
     rejectUnauthorized: true
   }
 });
 
-// Test connection on startup
 const testConnection = async () => {
   try {
     const conn = await pool.getConnection();
@@ -28,7 +37,7 @@ const testConnection = async () => {
     conn.release();
   } catch (err) {
     console.error('❌ MySQL connection failed:', err.message);
-    console.error('Check if your IP is allowed in Aiven and your path to ca.pem is correct.');
+    // On Render, this error often means the IP isn't allowed or the SSL cert is missing
     process.exit(1);
   }
 };
