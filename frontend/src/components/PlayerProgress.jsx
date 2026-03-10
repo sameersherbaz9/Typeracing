@@ -1,88 +1,152 @@
-const CARS = ['🏎️', '🚗', '🚕', '🚙', '🛻', '🚓'];
+// Realistic SVG Car component — side view
+const CarSVG = ({ color, glowColor, isMe }) => (
+  <svg viewBox="0 0 80 36" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+    {/* Glow under car */}
+    <ellipse cx="40" cy="34" rx="30" ry="4" fill={glowColor} opacity="0.5" />
+    {/* Car body bottom */}
+    <rect x="6" y="22" width="68" height="10" rx="3" fill={color} />
+    {/* Car body top / cabin */}
+    <path d="M18 22 Q22 10 30 9 L52 9 Q60 10 64 22 Z" fill={color} />
+    {/* Windshield */}
+    <path d="M31 10 Q33 12 35 20 L28 20 Q26 14 31 10 Z" fill="#1a2a4a" opacity="0.85" />
+    {/* Rear window */}
+    <path d="M51 10 Q56 13 58 20 L51 20 Q49 13 51 10 Z" fill="#1a2a4a" opacity="0.85" />
+    {/* Middle window */}
+    <path d="M36 10 L50 10 L50 20 L36 20 Z" fill="#1a2a4a" opacity="0.85" />
+    {/* Window glare */}
+    <path d="M38 11 L42 11 L41 13 L37 13 Z" fill="white" opacity="0.2" />
+    {/* Headlight */}
+    <ellipse cx="72" cy="26" rx="4" ry="3" fill="#fffbe6" opacity="0.95" />
+    <ellipse cx="72" cy="26" rx="2" ry="2" fill="white" />
+    {/* Tail light */}
+    <rect x="7" y="24" width="5" height="5" rx="1" fill="#ff2222" opacity="0.9" />
+    <rect x="8" y="25" width="3" height="3" rx="0.5" fill="#ff6666" />
+    {/* Racing stripe */}
+    <rect x="18" y="22" width="44" height="2" rx="1" fill="white" opacity="0.12" />
+    {/* Front wheel */}
+    <circle cx="60" cy="32" r="7" fill="#111" />
+    <circle cx="60" cy="32" r="5" fill="#222" />
+    <circle cx="60" cy="32" r="3" fill="#333" />
+    <circle cx="60" cy="32" r="1.5" fill="#555" />
+    {/* Rear wheel */}
+    <circle cx="20" cy="32" r="7" fill="#111" />
+    <circle cx="20" cy="32" r="5" fill="#222" />
+    <circle cx="20" cy="32" r="3" fill="#333" />
+    <circle cx="20" cy="32" r="1.5" fill="#555" />
+    {/* YOU badge */}
+    {isMe && <rect x="34" y="4" width="14" height="6" rx="3" fill="#ff3d24" />}
+    {isMe && <text x="41" y="9" textAnchor="middle" fill="white" fontSize="4" fontWeight="bold" fontFamily="monospace">YOU</text>}
+  </svg>
+);
+
 const COLORS = [
-  { bar: 'from-brand-500 to-orange-500', glow: 'rgba(255,61,36,0.5)', car: '#ff3d24' },
-  { bar: 'from-blue-500 to-cyan-400',   glow: 'rgba(59,130,246,0.5)',  car: '#3b82f6' },
-  { bar: 'from-emerald-500 to-green-400', glow: 'rgba(16,185,129,0.5)', car: '#10b981' },
-  { bar: 'from-purple-500 to-violet-400', glow: 'rgba(139,92,246,0.5)', car: '#8b5cf6' },
-  { bar: 'from-yellow-400 to-amber-500', glow: 'rgba(251,191,36,0.5)',  car: '#fbbf24' },
-  { bar: 'from-pink-500 to-rose-400',   glow: 'rgba(236,72,153,0.5)',   car: '#ec4899' },
+  { body: '#e63946', glow: 'rgba(230,57,70,0.6)',   label: 'text-red-400'    },
+  { body: '#2563eb', glow: 'rgba(37,99,235,0.6)',    label: 'text-blue-400'  },
+  { body: '#16a34a', glow: 'rgba(22,163,74,0.6)',    label: 'text-green-400' },
+  { body: '#9333ea', glow: 'rgba(147,51,234,0.6)',   label: 'text-purple-400'},
+  { body: '#d97706', glow: 'rgba(217,119,6,0.6)',    label: 'text-yellow-400'},
+  { body: '#0891b2', glow: 'rgba(8,145,178,0.6)',    label: 'text-cyan-400'  },
 ];
 
 const PlayerProgress = ({ players, currentUserId }) => {
   return (
-    <div className="glass rounded-2xl p-5 border border-white/5 space-y-4">
+    <div className="rounded-2xl overflow-hidden border border-white/10"
+      style={{ background: 'linear-gradient(180deg, #0f1117 0%, #1a1d2e 100%)' }}>
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-dark-300 uppercase tracking-wider font-display">
-          🏁 Live Race Track
-        </h3>
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5"
+        style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <div className="flex items-center gap-2">
+          <span className="text-base">🏁</span>
+          <span className="text-xs font-bold text-white uppercase tracking-widest font-display">Live Race Track</span>
+        </div>
         <span className="text-xs font-mono text-dark-400">{players.length} racer{players.length !== 1 ? 's' : ''}</span>
       </div>
 
-      {/* Race track for each player */}
-      <div className="space-y-4">
+      {/* Tracks */}
+      <div className="p-3 space-y-3">
         {players.map((player, index) => {
           const color = COLORS[index % COLORS.length];
-          const car = player.avatar || CARS[index % CARS.length];
           const progress = player.progress || 0;
           const isMe = player.userId === currentUserId;
 
           return (
-            <div key={player.userId} className="space-y-1">
-              {/* Player label row */}
-              <div className="flex items-center justify-between text-xs">
+            <div key={player.userId}>
+              {/* Player info row */}
+              <div className="flex items-center justify-between mb-1 px-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">{car}</span>
-                  <span className={`font-semibold font-display ${isMe ? 'text-brand-400' : 'text-white'}`}>
+                  <span className={`text-xs font-bold font-display ${isMe ? 'text-brand-400' : 'text-white'}`}>
                     {player.username}
-                    {isMe && <span className="ml-1 text-dark-500 font-normal">(you)</span>}
                   </span>
+                  {isMe && <span className="text-xs text-dark-500 font-mono">(you)</span>}
                   {player.finished && (
-                    <span className="px-1.5 py-0.5 rounded bg-neon-green/10 text-neon-green font-mono text-xs">
+                    <span className="px-1.5 py-0.5 rounded-full text-xs font-mono font-bold"
+                      style={{ background: 'rgba(0,255,136,0.1)', color: '#00ff88', border: '1px solid rgba(0,255,136,0.3)' }}>
                       #{player.position} ✓
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 font-mono text-dark-300">
-                  {player.wpm > 0 && <span className="text-white font-semibold">{Math.round(player.wpm)} wpm</span>}
-                  <span>{progress}%</span>
+                <div className="flex items-center gap-3 text-xs font-mono">
+                  {player.wpm > 0 && (
+                    <span className="font-bold" style={{ color: color.body }}>{Math.round(player.wpm)} WPM</span>
+                  )}
+                  <span className="text-dark-400">{progress}%</span>
                 </div>
               </div>
 
-              {/* Road track */}
-              <div className="relative h-8 rounded-xl overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-
-                {/* Road markings */}
-                <div className="absolute inset-y-0 left-0 right-0 flex items-center">
-                  {[...Array(20)].map((_, i) => (
+              {/* Road lane */}
+              <div className="relative rounded-xl overflow-hidden" style={{ height: '60px' }}>
+                {/* Asphalt */}
+                <div className="absolute inset-0"
+                  style={{ background: 'linear-gradient(180deg, #2a2d35 0%, #1e2028 50%, #2a2d35 100%)' }} />
+                {/* Road edge lines */}
+                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'rgba(255,255,255,0.15)' }} />
+                <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: 'rgba(255,255,255,0.10)' }} />
+                {/* Center dashes */}
+                <div className="absolute left-0 right-0 flex items-center" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+                  {[...Array(22)].map((_, i) => (
                     <div key={i} className="flex-1 flex justify-center">
-                      <div className="w-4 h-0.5 bg-white/5 rounded" />
+                      <div style={{ width: '14px', height: '2px', background: 'rgba(255,255,220,0.2)', borderRadius: '1px' }} />
                     </div>
                   ))}
                 </div>
-
-                {/* Progress fill */}
-                <div
-                  className={`absolute inset-y-0 left-0 bg-gradient-to-r ${color.bar} opacity-20 rounded-xl transition-all duration-300`}
-                  style={{ width: `${progress}%` }}
-                />
-
-                {/* Finish line */}
-                <div className="absolute right-0 top-0 bottom-0 w-1.5"
-                  style={{ background: 'repeating-linear-gradient(180deg, white 0px, white 4px, black 4px, black 8px)', opacity: 0.4 }} />
-
-                {/* Car emoji moving along track */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 text-lg transition-all duration-300 select-none"
+                {/* Progress glow trail */}
+                <div className="absolute inset-y-0 left-0 transition-all duration-300"
+                  style={{ width: `${progress}%`, background: `linear-gradient(90deg, transparent 0%, ${color.glow.replace('0.6','0.1')} 100%)` }} />
+                {/* Checkered finish line */}
+                <div className="absolute top-0 bottom-0 right-0 w-4"
                   style={{
-                    left: `clamp(4px, calc(${progress}% - 20px), calc(100% - 32px))`,
-                    filter: `drop-shadow(0 0 6px ${color.car})`,
-                    fontSize: '1.2rem',
-                    lineHeight: 1,
-                  }}
-                >
-                  {car}
+                    backgroundImage: 'repeating-conic-gradient(#fff 0% 25%, #000 0% 50%)',
+                    backgroundSize: '8px 8px',
+                    opacity: 0.5,
+                  }} />
+                {/* Speed lines before car */}
+                {progress > 3 && progress < 98 && (
+                  <div className="absolute flex gap-1 items-center"
+                    style={{
+                      top: '50%', transform: 'translateY(-50%)',
+                      left: `clamp(2px, calc(${progress}% - 100px), calc(100% - 120px))`,
+                      opacity: 0.5,
+                    }}>
+                    {[18, 12, 8].map((w, i) => (
+                      <div key={i} style={{
+                        width: `${w}px`, height: '2px',
+                        background: `linear-gradient(90deg, transparent, ${color.body})`,
+                        borderRadius: '1px',
+                      }} />
+                    ))}
+                  </div>
+                )}
+                {/* Car */}
+                <div className="absolute transition-all duration-300"
+                  style={{
+                    width: '76px', height: '44px',
+                    top: '50%', transform: 'translateY(-50%)',
+                    left: `clamp(4px, calc(${progress}% - 64px), calc(100% - 84px))`,
+                    filter: `drop-shadow(0 0 10px ${color.glow}) drop-shadow(0 3px 6px rgba(0,0,0,0.9))`,
+                    zIndex: 2,
+                  }}>
+                  <CarSVG color={color.body} glowColor={color.glow} isMe={isMe} />
                 </div>
               </div>
             </div>
