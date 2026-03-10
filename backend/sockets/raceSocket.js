@@ -186,6 +186,17 @@ const setupSocket = (io) => {
       }
     });
 
+    // ── RACE CHAT ───────────────────────────────────────
+    socket.on('chatMessage', ({ raceId, text }) => {
+      const raceState = activeRaces.get(raceId);
+      if (!raceState) return;
+      socket.to(raceState.roomCode).emit('chatMessage', {
+        username: socket.user.username,
+        avatar: socket.user.avatar || '🏎️',
+        text: String(text).slice(0, 100),
+      });
+    });
+
     // ── PLAYER LEFT RACE ────────────────────────────────
     socket.on('leaveRace', ({ raceId }) => {
       handlePlayerLeave(socket, raceId, io);
