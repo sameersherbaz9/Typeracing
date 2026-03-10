@@ -120,13 +120,13 @@ const Practice = () => {
   const rank = result ? getRank(result.wpm) : null;
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 bg-grid">
+    <div className="min-h-screen pt-20 pb-12 px-4 bg-grid">
       <div className="max-w-3xl mx-auto space-y-5">
 
         {/* Header */}
         <div className="animate-slide-up flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold font-display text-white">Practice Mode</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold font-display text-white">Practice Mode</h1>
             <p className="text-dark-300 text-sm mt-1">Sharpen your speed and accuracy solo</p>
           </div>
           {/* Sound toggle */}
@@ -260,7 +260,7 @@ const Practice = () => {
               ].map(({ label, value, color, icon }) => (
                 <div key={label} className="p-5 text-center">
                   <div className="text-lg mb-1">{icon}</div>
-                  <div className={`text-3xl font-bold font-mono ${color}`}>{value}</div>
+                  <div className={`text-2xl sm:text-3xl font-bold font-mono ${color}`}>{value}</div>
                   <div className="text-dark-400 text-xs mt-1 uppercase tracking-wider font-display">{label}</div>
                 </div>
               ))}
