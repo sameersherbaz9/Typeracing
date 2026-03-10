@@ -24,7 +24,7 @@ const RaceResults = ({ results, myResult, onPlayAgain, onLeave }) => {
           <div className="text-5xl mb-2">
             {results.findIndex(r => r.userId === myResult?.userId) === 0 ? '🏆' : '🏁'}
           </div>
-          <h2 className="text-2xl font-bold font-display text-white">Race Complete!</h2>
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-white">Race Complete!</h2>
           <p className="text-dark-300 text-sm mt-1">
             Winner: <span className="text-brand-400 font-semibold">{winner?.username}</span> with{' '}
             <span className="text-white font-mono font-bold">{Math.round(winner?.wpm || 0)} WPM</span>
@@ -69,7 +69,7 @@ const RaceResults = ({ results, myResult, onPlayAgain, onLeave }) => {
         {myResult && (
           <div className="p-6 border-b border-white/5">
             <p className="text-xs font-display text-dark-400 uppercase tracking-wider mb-3">Your Performance</p>
-            <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
               {[
                 { label: 'WPM', value: Math.round(myResult.wpm), color: 'text-brand-400' },
                 { label: 'Accuracy', value: `${Math.round(myResult.accuracy)}%`, color: myResult.accuracy >= 95 ? 'text-neon-green' : 'text-yellow-400' },
