@@ -164,7 +164,7 @@ const TypingArea = ({ text, onProgress, onFinish, disabled = false, started = fa
       )}
 
       {/* Stats bar */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
           { label: 'WPM', value: wpm, color: 'text-brand-400' },
           { label: 'ACC', value: `${accuracy}%`, color: accuracy >= 95 ? 'text-neon-green' : accuracy >= 80 ? 'text-yellow-400' : 'text-red-400' },
