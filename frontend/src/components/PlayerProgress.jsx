@@ -39,7 +39,7 @@ const CarSVG = ({ color, glowColor, isMe }) => (
   </svg>
 );
 
-const COLORS = [
+export const COLORS = [
   { body: '#e63946', glow: 'rgba(230,57,70,0.6)',   label: 'text-red-400'    },
   { body: '#2563eb', glow: 'rgba(37,99,235,0.6)',    label: 'text-blue-400'  },
   { body: '#16a34a', glow: 'rgba(22,163,74,0.6)',    label: 'text-green-400' },
@@ -48,110 +48,123 @@ const COLORS = [
   { body: '#0891b2', glow: 'rgba(8,145,178,0.6)',    label: 'text-cyan-400'  },
 ];
 
-const PlayerProgress = ({ players, currentUserId }) => {
+// One road lane — shared by compact and full views
+const Lane = ({ player, index, currentUserId, height }) => {
+  const color = COLORS[index % COLORS.length];
+  const progress = player.progress || 0;
+  const isMe = player.userId === currentUserId;
+  const carWidth = height >= 56 ? 76 : 56;
+  const carHeight = height >= 56 ? 44 : 32;
+
+  return (
+    <div>
+      {/* Player info row */}
+      <div className="flex items-center justify-between mb-1 px-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-xs font-bold font-display truncate ${isMe ? 'text-brand-400' : 'text-white'}`}>
+            {player.username}
+          </span>
+          {isMe && <span className="text-xs text-dark-500 font-mono hidden sm:inline">(you)</span>}
+          {player.finished && (
+            <span className="px-1.5 py-0.5 rounded-full text-xs font-mono font-bold shrink-0"
+              style={{ background: 'rgba(0,255,136,0.1)', color: '#00ff88', border: '1px solid rgba(0,255,136,0.3)' }}>
+              #{player.position} ✓
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono shrink-0">
+          {player.wpm > 0 && (
+            <span className="font-bold" style={{ color: color.body }}>{Math.round(player.wpm)} WPM</span>
+          )}
+          <span className="text-dark-400">{progress}%</span>
+        </div>
+      </div>
+
+      {/* Road lane */}
+      <div className="relative rounded-xl overflow-hidden" style={{ height: `${height}px` }}>
+        {/* Asphalt */}
+        <div className="absolute inset-0"
+          style={{ background: 'linear-gradient(180deg, #2a2d35 0%, #1e2028 50%, #2a2d35 100%)' }} />
+        {/* Road edge lines */}
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'rgba(255,255,255,0.15)' }} />
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: 'rgba(255,255,255,0.10)' }} />
+        {/* Center dashes */}
+        <div className="absolute left-0 right-0 flex items-center" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+          {[...Array(22)].map((_, i) => (
+            <div key={i} className="flex-1 flex justify-center">
+              <div style={{ width: '14px', height: '2px', background: 'rgba(255,255,220,0.2)', borderRadius: '1px' }} />
+            </div>
+          ))}
+        </div>
+        {/* Progress glow trail */}
+        <div className="absolute inset-y-0 left-0 transition-all duration-300"
+          style={{ width: `${progress}%`, background: `linear-gradient(90deg, transparent 0%, ${color.glow.replace('0.6','0.1')} 100%)` }} />
+        {/* Checkered finish line */}
+        <div className="absolute top-0 bottom-0 right-0 w-4"
+          style={{
+            backgroundImage: 'repeating-conic-gradient(#fff 0% 25%, #000 0% 50%)',
+            backgroundSize: '8px 8px',
+            opacity: 0.5,
+          }} />
+        {/* Speed lines before car */}
+        {progress > 3 && progress < 98 && (
+          <div className="absolute flex gap-1 items-center"
+            style={{
+              top: '50%', transform: 'translateY(-50%)',
+              left: `clamp(2px, calc(${progress}% - ${carWidth + 30}px), calc(100% - ${carWidth + 40}px))`,
+              opacity: 0.5,
+            }}>
+            {[18, 12, 8].map((w, i) => (
+              <div key={i} style={{
+                width: `${w}px`, height: '2px',
+                background: `linear-gradient(90deg, transparent, ${color.body})`,
+                borderRadius: '1px',
+              }} />
+            ))}
+          </div>
+        )}
+        {/* Car */}
+        <div className="absolute transition-all duration-300"
+          style={{
+            width: `${carWidth}px`, height: `${carHeight}px`,
+            top: '50%', transform: 'translateY(-50%)',
+            left: `clamp(4px, calc(${progress}% - ${carWidth - 12}px), calc(100% - ${carWidth + 8}px))`,
+            filter: `drop-shadow(0 0 10px ${color.glow}) drop-shadow(0 3px 6px rgba(0,0,0,0.9))`,
+            zIndex: 2,
+          }}>
+          <CarSVG color={color.body} glowColor={color.glow} isMe={isMe} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PlayerProgress = ({ players, currentUserId, compact = false }) => {
+  const laneHeight = compact ? 36 : 60;
+  const gap = compact ? 'gap-1.5' : 'gap-3';
+  const padding = compact ? 'p-2' : 'p-3';
+
   return (
     <div className="rounded-2xl overflow-hidden border border-white/10"
       style={{ background: 'linear-gradient(180deg, #0f1117 0%, #1a1d2e 100%)' }}>
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5"
-        style={{ background: 'rgba(255,255,255,0.02)' }}>
-        <div className="flex items-center gap-2">
-          <span className="text-base">🏁</span>
-          <span className="text-xs font-bold text-white uppercase tracking-widest font-display">Live Race Track</span>
+      {!compact && (
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5"
+          style={{ background: 'rgba(255,255,255,0.02)' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-base">🏁</span>
+            <span className="text-xs font-bold text-white uppercase tracking-widest font-display">Live Race Track</span>
+          </div>
+          <span className="text-xs font-mono text-dark-400">{players.length} racer{players.length !== 1 ? 's' : ''}</span>
         </div>
-        <span className="text-xs font-mono text-dark-400">{players.length} racer{players.length !== 1 ? 's' : ''}</span>
-      </div>
+      )}
 
       {/* Tracks */}
-      <div className="p-3 space-y-3">
-        {players.map((player, index) => {
-          const color = COLORS[index % COLORS.length];
-          const progress = player.progress || 0;
-          const isMe = player.userId === currentUserId;
-
-          return (
-            <div key={player.userId}>
-              {/* Player info row */}
-              <div className="flex items-center justify-between mb-1 px-1">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-bold font-display ${isMe ? 'text-brand-400' : 'text-white'}`}>
-                    {player.username}
-                  </span>
-                  {isMe && <span className="text-xs text-dark-500 font-mono">(you)</span>}
-                  {player.finished && (
-                    <span className="px-1.5 py-0.5 rounded-full text-xs font-mono font-bold"
-                      style={{ background: 'rgba(0,255,136,0.1)', color: '#00ff88', border: '1px solid rgba(0,255,136,0.3)' }}>
-                      #{player.position} ✓
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-xs font-mono">
-                  {player.wpm > 0 && (
-                    <span className="font-bold" style={{ color: color.body }}>{Math.round(player.wpm)} WPM</span>
-                  )}
-                  <span className="text-dark-400">{progress}%</span>
-                </div>
-              </div>
-
-              {/* Road lane */}
-              <div className="relative rounded-xl overflow-hidden" style={{ height: '60px' }}>
-                {/* Asphalt */}
-                <div className="absolute inset-0"
-                  style={{ background: 'linear-gradient(180deg, #2a2d35 0%, #1e2028 50%, #2a2d35 100%)' }} />
-                {/* Road edge lines */}
-                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'rgba(255,255,255,0.15)' }} />
-                <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: 'rgba(255,255,255,0.10)' }} />
-                {/* Center dashes */}
-                <div className="absolute left-0 right-0 flex items-center" style={{ top: '50%', transform: 'translateY(-50%)' }}>
-                  {[...Array(22)].map((_, i) => (
-                    <div key={i} className="flex-1 flex justify-center">
-                      <div style={{ width: '14px', height: '2px', background: 'rgba(255,255,220,0.2)', borderRadius: '1px' }} />
-                    </div>
-                  ))}
-                </div>
-                {/* Progress glow trail */}
-                <div className="absolute inset-y-0 left-0 transition-all duration-300"
-                  style={{ width: `${progress}%`, background: `linear-gradient(90deg, transparent 0%, ${color.glow.replace('0.6','0.1')} 100%)` }} />
-                {/* Checkered finish line */}
-                <div className="absolute top-0 bottom-0 right-0 w-4"
-                  style={{
-                    backgroundImage: 'repeating-conic-gradient(#fff 0% 25%, #000 0% 50%)',
-                    backgroundSize: '8px 8px',
-                    opacity: 0.5,
-                  }} />
-                {/* Speed lines before car */}
-                {progress > 3 && progress < 98 && (
-                  <div className="absolute flex gap-1 items-center"
-                    style={{
-                      top: '50%', transform: 'translateY(-50%)',
-                      left: `clamp(2px, calc(${progress}% - 100px), calc(100% - 120px))`,
-                      opacity: 0.5,
-                    }}>
-                    {[18, 12, 8].map((w, i) => (
-                      <div key={i} style={{
-                        width: `${w}px`, height: '2px',
-                        background: `linear-gradient(90deg, transparent, ${color.body})`,
-                        borderRadius: '1px',
-                      }} />
-                    ))}
-                  </div>
-                )}
-                {/* Car */}
-                <div className="absolute transition-all duration-300"
-                  style={{
-                    width: '76px', height: '44px',
-                    top: '50%', transform: 'translateY(-50%)',
-                    left: `clamp(4px, calc(${progress}% - 64px), calc(100% - 84px))`,
-                    filter: `drop-shadow(0 0 10px ${color.glow}) drop-shadow(0 3px 6px rgba(0,0,0,0.9))`,
-                    zIndex: 2,
-                  }}>
-                  <CarSVG color={color.body} glowColor={color.glow} isMe={isMe} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      <div className={`${padding} flex flex-col ${gap}`}>
+        {players.map((player, index) => (
+          <Lane key={player.userId} player={player} index={index} currentUserId={currentUserId} height={laneHeight} />
+        ))}
       </div>
     </div>
   );
