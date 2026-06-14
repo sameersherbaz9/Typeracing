@@ -123,4 +123,66 @@ const getRaceResult = async (req, res) => {
   }
 };
 
-module.exports = { createRace, joinRace, getRaceResult };
+// POST /api/race/finish
+// Called directly by the frontend when a race ends (works for solo/bot races
+// that don't go through the socket flow). Updates RaceParticipants + Leaderboard.
+const finishRace = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { race_id, wpm, accuracy, finish_time, position } = req.body;
+
+    if (!race_id || wpm == null || accuracy == null) {
+      return res.status(400).json({ error: 'race_id, wpm and accuracy are required' });
+    }
+
+    // Make sure a participant row exists for this user+race (it should from createRace,
+    // but guard against missing rows too)
+    const [existing] = await db.query(
+      'SELECT id FROM RaceParticipants WHERE race_id = ? AND user_id = ?',
+      [race_id, userId]
+    );
+
+    if (existing.length === 0) {
+      await db.query(
+        'INSERT INTO RaceParticipants (race_id, user_id, wpm, accuracy, finish_time, position) VALUES (?, ?, ?, ?, ?, ?)',
+        [race_id, userId, wpm, accuracy, finish_time || null, position || 1]
+      );
+    } else {
+      await db.query(
+        'UPDATE RaceParticipants SET wpm = ?, accuracy = ?, finish_time = ?, position = ? WHERE race_id = ? AND user_id = ?',
+        [wpm, accuracy, finish_time || null, position || 1, race_id, userId]
+      );
+    }
+
+    // Mark race as finished
+    await db.query("UPDATE Races SET status = 'finished' WHERE race_id = ?", [race_id]);
+
+    // Update leaderboard
+    const [lbRows] = await db.query('SELECT * FROM Leaderboard WHERE user_id = ?', [userId]);
+
+    if (lbRows.length === 0) {
+      await db.query(
+        'INSERT INTO Leaderboard (user_id, best_wpm, avg_accuracy, total_races) VALUES (?, ?, ?, 1)',
+        [userId, wpm, accuracy]
+      );
+    } else {
+      const current = lbRows[0];
+      const newBestWpm = Math.max(current.best_wpm, wpm);
+      const newTotalRaces = current.total_races + 1;
+      const newAvgAccuracy =
+        (current.avg_accuracy * current.total_races + accuracy) / newTotalRaces;
+
+      await db.query(
+        'UPDATE Leaderboard SET best_wpm = ?, avg_accuracy = ?, total_races = ? WHERE user_id = ?',
+        [newBestWpm, newAvgAccuracy.toFixed(2), newTotalRaces, userId]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Finish race error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { createRace, joinRace, getRaceResult, finishRace };
