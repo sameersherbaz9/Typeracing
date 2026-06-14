@@ -51,4 +51,39 @@ const getRaceHistory = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, getRaceHistory };
+// GET /api/wpm-stats — used to calibrate bot speeds to the user's skill level
+const getWpmStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Average + best WPM from completed races (wpm > 0)
+    const [rows] = await db.query(
+      `SELECT AVG(wpm) as avgWpm, MAX(wpm) as maxWpm, COUNT(*) as raceCount
+       FROM RaceParticipants
+       WHERE user_id = ? AND wpm > 0`,
+      [userId]
+    );
+
+    const row = rows[0] || {};
+    const raceCount = row.raceCount || 0;
+
+    // Also check leaderboard's best_wpm as a fallback/extra signal
+    const [lbRows] = await db.query('SELECT best_wpm FROM Leaderboard WHERE user_id = ?', [userId]);
+    const lbBest = lbRows[0]?.best_wpm || 0;
+
+    const avgWpm = row.avgWpm ? parseFloat(row.avgWpm) : 0;
+    const bestWpm = Math.max(row.maxWpm ? parseFloat(row.maxWpm) : 0, lbBest);
+
+    res.json({
+      avgWpm: Math.round(avgWpm),
+      bestWpm: Math.round(bestWpm),
+      raceCount,
+      hasHistory: raceCount > 0,
+    });
+  } catch (err) {
+    console.error('WPM stats error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { getProfile, getRaceHistory, getWpmStats };
