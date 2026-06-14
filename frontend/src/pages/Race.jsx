@@ -189,30 +189,43 @@ const Race = () => {
   };
 
   const handleFinish = ({ wpm, accuracy, time, errors, trickyKeys }) => {
-    setMyResult({ wpm, accuracy, time, errors, trickyKeys, userId: user.id });
     const socket = socketRef.current;
     if (socket && raceData) socket.emit('playerFinished', { raceId: raceData.race_id, wpm, accuracy, finishTime: time });
 
-    // Build results including bots (finished + unfinished)
+    botIntervalsRef.current.forEach(clearInterval);
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    // Build results including bots (finished + unfinished), determine my position
     setPlayers(prev => {
-      const allPlayers = prev.map(p => p.userId === user.id ? { ...p, progress: 100, finished: true } : p);
+      const allPlayers = prev.map(p => p.userId === user.id ? { ...p, progress: 100, finished: true, wpm, accuracy } : p);
       const sorted = [...allPlayers].sort((a, b) => {
         if (a.finished && !b.finished) return -1;
         if (!a.finished && b.finished) return 1;
         return (b.wpm || 0) - (a.wpm || 0);
       }).map((p, i) => ({ ...p, position: i + 1 }));
-      // Trigger finished after a moment if no socket
+
+      const myPosition = sorted.find(p => p.userId === user.id)?.position || 1;
+      setMyResult({ wpm, accuracy, time, errors, trickyKeys, userId: user.id, position: myPosition });
+
+      // Persist result to DB (RaceParticipants + Leaderboard) via REST API
+      if (raceData) {
+        api.post('/race/finish', {
+          race_id: raceData.race_id,
+          wpm: Math.round(wpm),
+          accuracy: Math.round(accuracy),
+          finish_time: time,
+          position: myPosition,
+        }).catch(err => console.error('Failed to save race result:', err));
+      }
+
+      // Show results modal shortly after
       setTimeout(() => {
-        if (!socketRef.current) {
-          setResults(sorted);
-          setPhase('finished');
-        }
-      }, 2000);
+        setResults(sorted);
+        setPhase('finished');
+      }, 1500);
+
       return sorted;
     });
-
-    botIntervalsRef.current.forEach(clearInterval);
-    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   const handleLeave = () => {
