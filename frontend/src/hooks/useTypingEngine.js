@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-// --- Sound Effects via Web Audio API (no external files needed) ---
+// -- Sound Effects via Web Audio API (no external files needed) --
 const createSound = (ctx, type) => {
   const o = ctx.createOscillator();
   const g = ctx.createGain();
