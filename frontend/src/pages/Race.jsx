@@ -65,7 +65,24 @@ const Race = () => {
     botIntervalsRef.current = [];
   }, []);
 
-  useEffect(() => { return cleanup; }, [cleanup]);
+  // Keep refs in sync so the unmount cleanup below has the latest values
+  const phaseRef = useRef(phase);
+  const raceDataRef = useRef(raceData);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { raceDataRef.current = raceData; }, [raceData]);
+
+  // On unmount (e.g. navigating to another page mid-race), clean up timers
+  // and remove the orphaned RaceParticipants row if the race wasn't finished
+  useEffect(() => {
+    return () => {
+      cleanup();
+      const p = phaseRef.current;
+      const rd = raceDataRef.current;
+      if (rd && (p === 'countdown' || p === 'racing')) {
+        api.post('/race/abandon', { race_id: rd.race_id }).catch(() => {});
+      }
+    };
+  }, [cleanup]);
 
   // Compute the 3 bot speeds based on the user's skill level:
   //  - Bot 1: slightly below the user's average WPM (a slower rival)
@@ -228,6 +245,13 @@ const Race = () => {
   const handleLeave = () => {
     cleanup();
     disconnectSocket();
+
+    // If the race was started but not finished, remove the orphaned
+    // RaceParticipants row so it doesn't appear in Recent Races
+    if (raceData && (phase === 'countdown' || phase === 'racing')) {
+      api.post('/race/abandon', { race_id: raceData.race_id }).catch(() => {});
+    }
+
     setPhase('lobby');
     setRaceData(null);
     setPlayers([]);
@@ -241,7 +265,6 @@ const Race = () => {
 
   // ── LOBBY ─────────────────────────────────────────────────
   if (phase === 'lobby') {
-    const previewWpms = computeBotWpms();
     return (
       <div className="min-h-screen pt-20 pb-12 px-4 bg-grid">
         <div className="max-w-lg mx-auto space-y-5">
@@ -293,30 +316,23 @@ const Race = () => {
             {/* Opponents preview */}
             <div className="bg-dark-700/40 rounded-xl p-4 border border-white/5">
               <p className="text-xs text-dark-400 uppercase tracking-wider font-display mb-3">
-                Your opponents {wpmStats?.hasHistory ? '· calibrated to you' : ''}
+                Your opponents
               </p>
               <div className="space-y-2">
-                {BOT_PROFILES.map((bot, i) => (
+                {BOT_PROFILES.map((bot) => (
                   <div key={bot.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-base">{bot.avatar}</span>
                       <span className="text-sm text-white font-display">{bot.name}</span>
                       <span className="text-xs text-dark-500 font-mono">BOT</span>
                     </div>
-                    <span className="text-xs font-mono text-dark-400">
-                      ~{previewWpms[i]} WPM
-                      <span className="text-dark-600 ml-1">
-                        {i === 0 ? '(slower)' : i === 1 ? '(your avg)' : '(your best)'}
-                      </span>
-                    </span>
+                    <span className="text-xs font-mono text-dark-500">Ready</span>
                   </div>
                 ))}
               </div>
-              {!wpmStats?.hasHistory && (
-                <p className="text-xs text-dark-500 font-mono mt-3">
-                  Complete a race to calibrate opponents to your speed!
-                </p>
-              )}
+              <p className="text-xs text-dark-500 font-mono mt-3">
+                Opponent difficulty is matched to your skill level
+              </p>
             </div>
           </div>
 
@@ -352,14 +368,13 @@ const Race = () => {
   }
 
   // ── RACING / COUNTDOWN ─────────────────────────────────────
-  // Sticky split layout: race track pinned to top, typing area fills remaining
-  // viewport so both are visible at once without scrolling.
+  // Fixed-height layout (100dvh minus navbar): race track on top, typing
+  // area fills the rest. No page scrolling, so both are always visible.
   return (
-    <div className="min-h-screen bg-grid flex flex-col" style={{ paddingTop: '64px' }}>
+    <div className="bg-grid flex flex-col overflow-hidden" style={{ height: '100dvh', paddingTop: '64px' }}>
 
-      {/* Sticky top section: header + race track */}
-      <div className="sticky top-16 z-20 px-4 pt-3 pb-2 backdrop-blur-md"
-        style={{ background: 'linear-gradient(180deg, rgba(10,11,16,0.95) 0%, rgba(10,11,16,0.85) 80%, transparent 100%)' }}>
+      {/* Header + race track */}
+      <div className="px-4 pt-3 pb-2 shrink-0">
         <div className="max-w-4xl mx-auto space-y-2.5">
 
           {/* Header */}
@@ -399,10 +414,10 @@ const Race = () => {
       </div>
 
       {/* Typing area — fills remaining space, always visible */}
-      <div className="flex-1 px-4 pb-6 pt-2">
+      <div className="flex-1 px-4 pb-4 pt-1 min-h-0 overflow-y-auto">
         <div className="max-w-4xl mx-auto h-full flex flex-col">
-          <div className="relative animate-slide-up stagger-2 flex-1 flex flex-col">
-            <div className="glass rounded-2xl p-4 sm:p-6 border border-white/5 flex-1 flex flex-col justify-center"
+          <div className="relative animate-slide-up stagger-2 flex-1 flex flex-col min-h-0">
+            <div className="glass rounded-2xl p-4 sm:p-6 border border-white/5 flex-1 flex flex-col justify-center min-h-0"
               style={{
                 boxShadow: phase === 'racing' ? '0 0 0 1px rgba(255,61,36,0.15), 0 8px 32px rgba(255,61,36,0.08)' : 'none',
               }}>
