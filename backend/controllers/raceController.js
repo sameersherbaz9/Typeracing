@@ -185,4 +185,41 @@ const finishRace = async (req, res) => {
   }
 };
 
-module.exports = { createRace, joinRace, getRaceResult, finishRace };
+// POST /api/race/abandon
+// Called when the user leaves a race before finishing it. Removes the
+// RaceParticipants row for this race so it never shows up in Recent Races
+// or affects the Leaderboard. Safe no-op if the race was already finished.
+const abandonRace = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { race_id } = req.body;
+
+    if (!race_id) {
+      return res.status(400).json({ error: 'race_id is required' });
+    }
+
+    // Only delete if this participant entry was never completed (wpm still 0/NULL),
+    // so we never accidentally remove a legitimately finished result.
+    await db.query(
+      `DELETE FROM RaceParticipants
+       WHERE race_id = ? AND user_id = ? AND (wpm IS NULL OR wpm = 0)`,
+      [race_id, userId]
+    );
+
+    // If no participants remain for this race, mark it finished/abandoned
+    const [remaining] = await db.query(
+      'SELECT COUNT(*) as cnt FROM RaceParticipants WHERE race_id = ?',
+      [race_id]
+    );
+    if (remaining[0].cnt === 0) {
+      await db.query("UPDATE Races SET status = 'finished' WHERE race_id = ?", [race_id]).catch(() => {});
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Abandon race error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { createRace, joinRace, getRaceResult, finishRace, abandonRace };
