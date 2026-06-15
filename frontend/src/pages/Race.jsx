@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { disconnectSocket } from '../socket/socket';
-import TypingArea from '../components/TypingArea';
-import PlayerProgress from '../components/PlayerProgress';
+import RaceScene from '../components/RaceScene';
 import CountdownOverlay from '../components/CountdownOverlay';
 import RaceResults from '../components/RaceResults';
 
@@ -261,8 +260,6 @@ const Race = () => {
     setCountdown(null);
   };
 
-  const formatTime = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-
   // ── LOBBY ─────────────────────────────────────────────────
   if (phase === 'lobby') {
     return (
@@ -368,72 +365,57 @@ const Race = () => {
   }
 
   // ── RACING / COUNTDOWN ─────────────────────────────────────
-  // Fixed-height layout (100dvh minus navbar): race track on top, typing
-  // area fills the rest. No page scrolling, so both are always visible.
+  // Single cohesive scene: scenic background, race lanes, traffic light,
+  // and bottom typing bar are all part of RaceScene. No separate sections
+  // to scroll between — everything is visible together.
   return (
     <div className="bg-grid flex flex-col overflow-hidden" style={{ height: '100dvh', paddingTop: '64px' }}>
 
-      {/* Header + race track */}
-      <div className="px-4 pt-3 pb-2 shrink-0">
-        <div className="max-w-4xl mx-auto space-y-2.5">
-
-          {/* Header */}
-          <div className="flex items-center justify-between animate-slide-up">
-            <div className="flex items-center gap-3 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold font-display text-white truncate">
-                {phase === 'countdown' ? '🚦 Get Ready!' : '🏎️ Race Live'}
-              </h1>
-              {phase === 'racing' && (
-                <span className="flex items-center gap-1.5 text-xs font-mono text-red-400 bg-red-500/10 px-2 py-1 rounded-full border border-red-500/20 shrink-0">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> LIVE
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {phase === 'racing' && (
-                <span className="text-brand-400 font-mono text-sm font-bold">⏱ {formatTime(timer)}</span>
-              )}
-              <button onClick={() => setSoundEnabled(s => !s)}
-                className={`p-2 rounded-lg text-base transition-colors ${soundEnabled ? 'text-brand-400' : 'text-dark-500'}`}>
-                {soundEnabled ? '🔊' : '🔇'}
-              </button>
-              <button onClick={handleLeave}
-                className="px-3 py-1.5 text-sm text-dark-300 hover:text-white bg-dark-700 hover:bg-dark-600 rounded-xl transition-colors font-display">
-                Leave
-              </button>
-            </div>
-          </div>
-
-          {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>}
-
-          {/* Race track — compact so it always fits with the typing area */}
-          <div className="animate-slide-up stagger-1">
-            <PlayerProgress players={players} currentUserId={user.id} compact />
-          </div>
-        </div>
-      </div>
-
-      {/* Typing area — fills remaining space, always visible */}
-      <div className="flex-1 px-4 pb-4 pt-1 min-h-0 overflow-y-auto">
-        <div className="max-w-4xl mx-auto h-full flex flex-col">
-          <div className="relative animate-slide-up stagger-2 flex-1 flex flex-col min-h-0">
-            <div className="glass rounded-2xl p-4 sm:p-6 border border-white/5 flex-1 flex flex-col justify-center min-h-0"
-              style={{
-                boxShadow: phase === 'racing' ? '0 0 0 1px rgba(255,61,36,0.15), 0 8px 32px rgba(255,61,36,0.08)' : 'none',
-              }}>
-              <TypingArea
-                text={raceData?.text?.content || raceData?.content || ''}
-                started={phase === 'racing'}
-                disabled={phase !== 'racing'}
-                soundEnabled={soundEnabled}
-                onProgress={handleProgress}
-                onFinish={handleFinish}
-              />
-            </div>
-            {(phase === 'countdown') && countdown !== null && (
-              <CountdownOverlay seconds={countdown} />
+      {/* Slim header */}
+      <div className="px-4 pt-2 pb-1.5 shrink-0">
+        <div className="max-w-4xl mx-auto flex items-center justify-between animate-slide-up">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold font-display text-white truncate">
+              {phase === 'countdown' ? '🚦 Get Ready!' : '🏎️ Race Live'}
+            </h1>
+            {phase === 'racing' && (
+              <span className="flex items-center gap-1.5 text-xs font-mono text-red-400 bg-red-500/10 px-2 py-1 rounded-full border border-red-500/20 shrink-0">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> LIVE
+              </span>
             )}
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={() => setSoundEnabled(s => !s)}
+              className={`p-2 rounded-lg text-base transition-colors ${soundEnabled ? 'text-brand-400' : 'text-dark-500'}`}>
+              {soundEnabled ? '🔊' : '🔇'}
+            </button>
+            <button onClick={handleLeave}
+              className="px-3 py-1.5 text-sm text-dark-300 hover:text-white bg-dark-700 hover:bg-dark-600 rounded-xl transition-colors font-display">
+              Leave
+            </button>
+          </div>
+        </div>
+        {error && (
+          <div className="max-w-4xl mx-auto mt-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
+        )}
+      </div>
+
+      {/* The scene — fills remaining space */}
+      <div className="flex-1 px-3 sm:px-4 pb-3 min-h-0">
+        <div className="max-w-4xl mx-auto h-full relative animate-slide-up stagger-1">
+          <RaceScene
+            players={players}
+            currentUserId={user.id}
+            text={raceData?.text?.content || raceData?.content || ''}
+            phase={phase}
+            timer={timer}
+            soundEnabled={soundEnabled}
+            onProgress={handleProgress}
+            onFinish={handleFinish}
+          />
+          {phase === 'countdown' && countdown !== null && countdown > 0 && (
+            <CountdownOverlay seconds={countdown} />
+          )}
         </div>
       </div>
 
