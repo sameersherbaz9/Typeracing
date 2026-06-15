@@ -2,106 +2,175 @@ import { useEffect, useRef, useState } from 'react';
 import { useTypingEngine } from '../hooks/useTypingEngine';
 
 const LANE_COLORS = [
-  '#e63946', '#2563eb', '#16a34a', '#9333ea', '#d97706', '#0891b2',
+  '#e63946', '#2563eb', '#16a34a', '#9333ea', '#f59e0b', '#06b6d4',
 ];
 
-// Realistic side-view car SVG, same style as PlayerProgress
-const CarSVG = ({ color, isMe }) => (
-  <svg viewBox="0 0 80 36" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-    <ellipse cx="40" cy="34" rx="30" ry="4" fill={color} opacity="0.35" />
-    <rect x="6" y="22" width="68" height="10" rx="3" fill={color} />
-    <path d="M18 22 Q22 10 30 9 L52 9 Q60 10 64 22 Z" fill={color} />
-    <path d="M31 10 Q33 12 35 20 L28 20 Q26 14 31 10 Z" fill="#1a2a4a" opacity="0.85" />
-    <path d="M51 10 Q56 13 58 20 L51 20 Q49 13 51 10 Z" fill="#1a2a4a" opacity="0.85" />
-    <path d="M36 10 L50 10 L50 20 L36 20 Z" fill="#1a2a4a" opacity="0.85" />
-    <path d="M38 11 L42 11 L41 13 L37 13 Z" fill="white" opacity="0.2" />
-    <ellipse cx="72" cy="26" rx="4" ry="3" fill="#fffbe6" opacity="0.95" />
-    <ellipse cx="72" cy="26" rx="2" ry="2" fill="white" />
-    <rect x="7" y="24" width="5" height="5" rx="1" fill="#ff2222" opacity="0.9" />
-    <rect x="8" y="25" width="3" height="3" rx="0.5" fill="#ff6666" />
-    <rect x="18" y="22" width="44" height="2" rx="1" fill="white" opacity="0.12" />
-    <circle cx="60" cy="32" r="7" fill="#111" /><circle cx="60" cy="32" r="5" fill="#222" /><circle cx="60" cy="32" r="3" fill="#333" /><circle cx="60" cy="32" r="1.5" fill="#555" />
-    <circle cx="20" cy="32" r="7" fill="#111" /><circle cx="20" cy="32" r="5" fill="#222" /><circle cx="20" cy="32" r="3" fill="#333" /><circle cx="20" cy="32" r="1.5" fill="#555" />
-    {isMe && <rect x="34" y="4" width="14" height="6" rx="3" fill="#ffd700" />}
-    {isMe && <text x="41" y="9" textAnchor="middle" fill="#111" fontSize="4" fontWeight="bold" fontFamily="monospace">YOU</text>}
-  </svg>
-);
+// Realistic sports car SVG — side view with detailed body, shading, rims
+const CarSVG = ({ color, isMe }) => {
+  // Slightly darker shade for depth/shadow areas
+  const shade = (hex, amt) => {
+    const num = parseInt(hex.slice(1), 16);
+    let r = (num >> 16) + amt, g = ((num >> 8) & 0x00FF) + amt, b = (num & 0x0000FF) + amt;
+    r = Math.max(Math.min(255, r), 0); g = Math.max(Math.min(255, g), 0); b = Math.max(Math.min(255, b), 0);
+    return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+  };
+  const dark = shade(color, -40);
+  const light = shade(color, 35);
 
-// Scenic background — sky, city skyline, trees, road barrier
+  return (
+    <svg viewBox="0 0 100 44" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+      {/* Ground shadow */}
+      <ellipse cx="50" cy="40" rx="42" ry="4" fill="#000" opacity="0.28" />
+
+      {/* Lower body / chassis */}
+      <path d="M6 30 Q4 24 14 23 L20 23 Q26 14 38 12 L66 12 Q78 14 86 23 L92 23 Q98 24 96 30 L96 33 Q96 36 92 36 L10 36 Q6 36 6 33 Z" fill={color} />
+      {/* Body shading - bottom strip */}
+      <path d="M6 30 Q4 24 14 23 L92 23 Q98 24 96 30 L96 33 Q96 36 92 36 L10 36 Q6 36 6 33 Z" fill={dark} opacity="0.25" />
+
+      {/* Roof / cabin */}
+      <path d="M28 23 Q32 11 42 9 L62 9 Q72 11 78 23 Z" fill={color} />
+      {/* Roof highlight */}
+      <path d="M30 22 Q34 13 42 11 L60 11 Q56 13 54 22 Z" fill={light} opacity="0.45" />
+
+      {/* Windshield (front, right) */}
+      <path d="M62 11 Q70 13 75 23 L65 23 Q63 16 62 11 Z" fill="#bcd4e6" opacity="0.9" />
+      <path d="M64 12 Q68 14 71 20 L66 20 Q65 15 64 12 Z" fill="#fff" opacity="0.5" />
+      {/* Rear window */}
+      <path d="M42 10 Q35 12 31 23 L40 23 Q41 15 42 10 Z" fill="#bcd4e6" opacity="0.9" />
+      {/* Side window divider */}
+      <rect x="40" y="11" width="22" height="12" fill="#a8c4da" opacity="0.85" rx="1" />
+      <rect x="41" y="12" width="20" height="3" fill="#fff" opacity="0.35" />
+
+      {/* Door line */}
+      <path d="M52 23 L52 36" stroke={dark} strokeWidth="0.7" opacity="0.4" />
+      {/* Door handle */}
+      <rect x="56" y="25" width="6" height="1.6" rx="0.8" fill={light} opacity="0.8" />
+
+      {/* Side skirt stripe */}
+      <rect x="14" y="29" width="78" height="2.5" fill={light} opacity="0.5" />
+
+      {/* Spoiler (rear) */}
+      <path d="M8 19 L8 23 L16 23 L16 21 Z" fill={dark} />
+      <rect x="6" y="17" width="4" height="2.5" rx="1" fill={dark} />
+
+      {/* Front bumper / nose accent */}
+      <path d="M86 23 L96 23 Q99 24 97 28 L92 28 Z" fill={dark} opacity="0.6" />
+
+      {/* Headlight */}
+      <ellipse cx="93" cy="27" rx="3.5" ry="2.8" fill="#fff8d6" />
+      <ellipse cx="94" cy="27" rx="1.8" ry="1.6" fill="#fffef0" />
+      {/* Taillight */}
+      <rect x="6" y="25" width="4" height="4.5" rx="1.2" fill="#ff3344" />
+      <rect x="6.8" y="26" width="2.2" height="2.5" rx="0.6" fill="#ff8888" />
+
+      {/* Front wheel arch + wheel */}
+      <path d="M70 36 a13 13 0 0 1 26 0 Z" fill={dark} opacity="0.3" />
+      <circle cx="79" cy="36" r="9.5" fill="#16181d" />
+      <circle cx="79" cy="36" r="6.8" fill="#2b2e35" />
+      <circle cx="79" cy="36" r="6.8" fill="none" stroke="#454952" strokeWidth="0.6" />
+      <circle cx="79" cy="36" r="3.6" fill="#75798a" />
+      <circle cx="79" cy="36" r="1.4" fill="#ccc" />
+      {[0, 72, 144, 216, 288].map(a => (
+        <line key={a}
+          x1={79 + 2 * Math.cos(a * Math.PI / 180)} y1={36 + 2 * Math.sin(a * Math.PI / 180)}
+          x2={79 + 6 * Math.cos(a * Math.PI / 180)} y2={36 + 6 * Math.sin(a * Math.PI / 180)}
+          stroke="#aaa" strokeWidth="1.2" strokeLinecap="round" />
+      ))}
+
+      {/* Rear wheel arch + wheel */}
+      <path d="M8 36 a13 13 0 0 1 26 0 Z" fill={dark} opacity="0.3" />
+      <circle cx="21" cy="36" r="9.5" fill="#16181d" />
+      <circle cx="21" cy="36" r="6.8" fill="#2b2e35" />
+      <circle cx="21" cy="36" r="6.8" fill="none" stroke="#454952" strokeWidth="0.6" />
+      <circle cx="21" cy="36" r="3.6" fill="#75798a" />
+      <circle cx="21" cy="36" r="1.4" fill="#ccc" />
+      {[0, 72, 144, 216, 288].map(a => (
+        <line key={a}
+          x1={21 + 2 * Math.cos(a * Math.PI / 180)} y1={36 + 2 * Math.sin(a * Math.PI / 180)}
+          x2={21 + 6 * Math.cos(a * Math.PI / 180)} y2={36 + 6 * Math.sin(a * Math.PI / 180)}
+          stroke="#aaa" strokeWidth="1.2" strokeLinecap="round" />
+      ))}
+
+      {/* Racing stripe */}
+      <path d="M30 13 Q40 11 50 11 L52 36 L46 36 Z" fill={light} opacity="0.3" />
+
+      {/* YOU crown badge */}
+      {isMe && (
+        <g transform="translate(46, 1)">
+          <path d="M0 8 L2 2 L5 6 L8 0 L11 6 L14 2 L16 8 Z" fill="#ffd700" stroke="#e6b800" strokeWidth="0.5" />
+        </g>
+      )}
+    </svg>
+  );
+};
+
+// Scenic background — road-dominant: thin sky strip, then multi-lane asphalt
+// with lane markings, side rumble strips, and a distant skyline silhouette.
 const SceneBackground = () => (
-  <svg viewBox="0 0 1000 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"
+  <svg viewBox="0 0 1000 400" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"
     style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}>
-    {/* Sky */}
     <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#6fb8e8" />
-        <stop offset="100%" stopColor="#a8d8f0" />
+      <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#5fa8dd" />
+        <stop offset="100%" stopColor="#bfe3f7" />
       </linearGradient>
-      <linearGradient id="roadGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#5a5d68" />
-        <stop offset="100%" stopColor="#4a4d58" />
+      <linearGradient id="road2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#4b4e58" />
+        <stop offset="50%" stopColor="#3c3f48" />
+        <stop offset="100%" stopColor="#33363e" />
+      </linearGradient>
+      <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#6fae5c" />
+        <stop offset="100%" stopColor="#5a9249" />
       </linearGradient>
     </defs>
-    <rect x="0" y="0" width="1000" height="120" fill="url(#sky)" />
 
+    {/* Sky strip — thin */}
+    <rect x="0" y="0" width="1000" height="46" fill="url(#sky2)" />
+    {/* Sun glow */}
+    <circle cx="880" cy="16" r="14" fill="#fff7d6" opacity="0.9" />
     {/* Clouds */}
-    {[[80, 30, 1], [400, 18, 0.8], [750, 35, 1.2], [920, 15, 0.7]].map(([x, y, s], i) => (
+    {[[90, 16, 0.8], [430, 10, 0.6], [650, 20, 0.7]].map(([x, y, s], i) => (
       <g key={i} opacity="0.85" transform={`translate(${x},${y}) scale(${s})`}>
-        <ellipse cx="0" cy="10" rx="28" ry="12" fill="#fff" />
-        <ellipse cx="20" cy="6" rx="20" ry="10" fill="#fff" />
-        <ellipse cx="-20" cy="8" rx="18" ry="9" fill="#fff" />
+        <ellipse cx="0" cy="6" rx="22" ry="8" fill="#fff" />
+        <ellipse cx="16" cy="3" rx="15" ry="7" fill="#fff" />
+        <ellipse cx="-15" cy="5" rx="13" ry="6" fill="#fff" />
       </g>
     ))}
 
-    {/* City skyline */}
-    {[
-      [0, 75, 50, 45, '#8fb4c9'], [55, 60, 40, 60, '#a3c4d6'], [100, 80, 35, 40, '#8fb4c9'],
-      [140, 50, 45, 70, '#9bbdd0'], [190, 70, 38, 50, '#a3c4d6'], [235, 65, 42, 55, '#8fb4c9'],
-      [285, 55, 50, 65, '#9bbdd0'], [340, 75, 40, 45, '#a3c4d6'], [385, 60, 45, 60, '#8fb4c9'],
-      [435, 80, 35, 40, '#9bbdd0'], [475, 50, 48, 70, '#a3c4d6'], [528, 70, 38, 50, '#8fb4c9'],
-      [570, 65, 44, 55, '#9bbdd0'], [618, 55, 50, 65, '#a3c4d6'], [672, 75, 40, 45, '#8fb4c9'],
-      [716, 60, 45, 60, '#9bbdd0'], [765, 80, 35, 40, '#a3c4d6'], [804, 50, 48, 70, '#8fb4c9'],
-      [856, 70, 38, 50, '#9bbdd0'], [898, 65, 44, 55, '#a3c4d6'], [946, 55, 54, 65, '#8fb4c9'],
-    ].map(([x, y, w, h, c], i) => (
-      <g key={i}>
-        <rect x={x} y={y} width={w} height={h} fill={c} />
-        {/* windows */}
-        {[...Array(Math.floor(h / 12))].map((_, ri) =>
-          [...Array(Math.floor(w / 10))].map((_, ci) => (
-            <rect key={`${ri}-${ci}`} x={x + 4 + ci * 10} y={y + 5 + ri * 12} width="4" height="5" fill="#fff" opacity="0.4" />
-          ))
-        )}
-      </g>
-    ))}
+    {/* Distant city skyline silhouette (small strip between sky and grass) */}
+    <rect x="0" y="38" width="1000" height="14" fill="#9fc3da" opacity="0.7" />
+    {[...Array(28)].map((_, i) => {
+      const x = i * 36 + (i % 2) * 8;
+      const h = 8 + (i % 3) * 5;
+      return <rect key={i} x={x} y={52 - h} width="20" height={h} fill="#8fb5cd" opacity="0.65" />;
+    })}
 
-    {/* Trees row */}
-    <rect x="0" y="118" width="1000" height="14" fill="#6fa05a" />
-    {[...Array(34)].map((_, i) => (
-      <g key={i} transform={`translate(${i * 30 + 10}, 110)`}>
-        <ellipse cx="0" cy="0" rx="16" ry="13" fill={i % 2 === 0 ? '#4f8c45' : '#5d9c52'} />
-        <ellipse cx="-6" cy="3" rx="10" ry="8" fill={i % 2 === 0 ? '#5d9c52' : '#6fae62'} />
-        <rect x="-2" y="8" width="4" height="6" fill="#6b4423" />
-      </g>
-    ))}
-
-    {/* Barrier wall */}
-    <rect x="0" y="124" width="1000" height="18" fill="#9aa0ab" />
+    {/* Grass strip */}
+    <rect x="0" y="52" width="1000" height="20" fill="url(#grass)" />
+    {/* small bushes on grass */}
     {[...Array(40)].map((_, i) => (
-      <g key={i}>
-        <rect x={i * 25} y="124" width="20" height="6" fill="#fff" />
-        <rect x={i * 25} y="124" width="20" height="6" fill="#e63946" opacity={i % 2 === 0 ? 0 : 0.85} />
-        <rect x={i * 25 + 8} y="118" width="4" height="24" fill="#6b6f78" />
-      </g>
+      <ellipse key={i} cx={i * 25 + 8} cy="64" rx="9" ry="6" fill={i % 2 === 0 ? '#4f8c45' : '#5d9c52'} opacity="0.8" />
     ))}
 
-    {/* Road surface (the race lanes render on top of this in HTML) */}
-    <rect x="0" y="142" width="1000" height="78" fill="url(#roadGrad)" />
+    {/* Rumble strip (red/white) */}
+    <rect x="0" y="72" width="1000" height="10" fill="#e8e8e8" />
+    {[...Array(50)].map((_, i) => (
+      <rect key={i} x={i * 20} y="72" width="10" height="10" fill="#d63a3a" />
+    ))}
+
+    {/* Main road surface — fills the rest */}
+    <rect x="0" y="82" width="1000" height="318" fill="url(#road2)" />
+
+    {/* subtle asphalt texture lines */}
+    {[...Array(30)].map((_, i) => (
+      <rect key={i} x="0" y={90 + i * 11} width="1000" height="1" fill="#fff" opacity="0.02" />
+    ))}
   </svg>
 );
 
 // Traffic light widget — red / yellow / green stack
 const TrafficLight = ({ phase }) => {
-  // phase: 'countdown' (red/yellow building) or 'racing' (green)
   const isGreen = phase === 'racing';
   const isRed = phase !== 'racing';
 
@@ -134,18 +203,16 @@ const RaceLane = ({ player, index, currentUserId, totalPlayers }) => {
   const color = LANE_COLORS[index % LANE_COLORS.length];
   const progress = player.progress || 0;
   const isMe = player.userId === currentUserId;
-  const carW = 64, carH = 32;
+  const carW = 92, carH = 42;
 
   return (
-    <div className="relative" style={{ height: `${100 / totalPlayers}%`, minHeight: '36px' }}>
-      {/* Lane divider lines */}
-      <div className="absolute inset-0 flex items-center px-2">
-        <div className="w-full h-px" style={{ background: 'rgba(255,255,255,0.15)' }} />
-      </div>
+    <div className="relative" style={{ height: `${100 / totalPlayers}%`, minHeight: '48px' }}>
+      {/* Lane divider line */}
+      <div className="absolute bottom-0 inset-x-0 h-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
       {/* dashed center markers */}
-      <div className="absolute inset-0 flex items-center justify-around px-2 opacity-25">
-        {[...Array(10)].map((_, i) => (
-          <div key={i} style={{ width: '16px', height: '2px', background: '#fff', borderRadius: '1px' }} />
+      <div className="absolute inset-0 flex items-center justify-around px-2 opacity-30">
+        {[...Array(14)].map((_, i) => (
+          <div key={i} style={{ width: '22px', height: '3px', background: '#ffe680', borderRadius: '1px' }} />
         ))}
       </div>
 
@@ -153,14 +220,14 @@ const RaceLane = ({ player, index, currentUserId, totalPlayers }) => {
       <div className="absolute z-10 transition-all duration-300"
         style={{
           top: '50%', transform: 'translateY(-50%)',
-          left: `clamp(2px, calc(${progress}% - 4px), calc(100% - 130px))`,
+          left: `clamp(2px, calc(${progress}% - 6px), calc(100% - 150px))`,
         }}>
-        <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold font-display whitespace-nowrap shadow-lg ${
+        <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold font-display whitespace-nowrap shadow-lg ${
           isMe ? 'text-dark-900' : 'text-white'
         }`}
           style={{
-            background: isMe ? '#22c55e' : 'rgba(0,0,0,0.55)',
-            transform: 'translateY(-26px)',
+            background: isMe ? '#22c55e' : 'rgba(0,0,0,0.6)',
+            transform: `translateY(${carH / 2 + 10}px)`,
           }}>
           {isMe ? 'You' : player.username}
         </span>
@@ -171,15 +238,15 @@ const RaceLane = ({ player, index, currentUserId, totalPlayers }) => {
         style={{
           width: `${carW}px`, height: `${carH}px`,
           top: '50%', transform: 'translateY(-50%)',
-          left: `clamp(2px, calc(${progress}% - ${carW - 8}px), calc(100% - ${carW + 4}px))`,
-          filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.5))',
+          left: `clamp(2px, calc(${progress}% - ${carW - 10}px), calc(100% - ${carW + 6}px))`,
+          filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.45))',
         }}>
         <CarSVG color={color} isMe={isMe} />
       </div>
 
       {/* finished badge */}
       {player.finished && (
-        <div className="absolute z-20" style={{ right: '2px', top: '50%', transform: 'translateY(-50%)' }}>
+        <div className="absolute z-20" style={{ right: '6px', top: '8px' }}>
           <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded-full"
             style={{ background: 'rgba(0,255,136,0.15)', color: '#00ff88', border: '1px solid rgba(0,255,136,0.4)' }}>
             #{player.position}
@@ -225,7 +292,7 @@ const RaceScene = ({ players, currentUserId, text, phase, timer, onProgress, onF
   // Build word list with per-word completion state for the bottom bar
   const words = text.split(' ');
   let charCount = 0;
-  const wordSpans = words.map((word, wi) => {
+  const wordSpans = words.map((word) => {
     const start = charCount;
     const end = charCount + word.length;
     charCount = end + 1; // +1 for the space
@@ -324,13 +391,10 @@ const RaceScene = ({ players, currentUserId, text, phase, timer, onProgress, onF
                           if (globalIdx < typed.length) {
                             cls = typed[globalIdx] === ch ? 'text-white' : 'text-red-400 underline';
                           } else if (globalIdx === typed.length) {
-                            cls = 'text-brand-400';
+                            cls = 'text-brand-400 underline';
                           }
                           return <span key={ci} className={cls}>{ch}</span>;
                         })}
-                        {typed.length === w.start + w.word.length && (
-                          <span className="text-brand-400">·</span>
-                        )}
                         {' '}
                       </span>
                     );
